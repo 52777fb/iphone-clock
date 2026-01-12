@@ -275,7 +275,7 @@
 @media (max-width: 480px){
   .date-line{
     margin-top: 14px;
-    font-size: 14px;
+    font-size: 20px;
     letter-spacing: 0.04em;
   }
 }
@@ -294,6 +294,27 @@
 @media (max-width: 480px){
   .light .digit-text{ mix-blend-mode: normal; }
 }
+@media (max-width: 480px){
+  /* 所有数字：别扩散 */
+  .digit-text{
+    filter: none !important;
+    text-shadow: 0 0 0.4px currentColor !important;
+    -webkit-text-stroke: 1.0px currentColor !important; /* 别用 15px */
+  }
+
+  /* 浅色层：彻底去光晕 + 不用 screen */
+  .light .digit-text{
+    mix-blend-mode: normal !important;
+    text-shadow: 0 0 0.4px currentColor !important; /* 只保留极轻的“补厚” */
+    opacity: 0.92 !important;
+  }
+
+  /* 冒号也别雾化（可选） */
+  .dot{
+    filter: none !important;
+  }
+}
+
 
 
 
@@ -466,6 +487,7 @@
   </script>
 </body>
 </html>
+
 
 
 
