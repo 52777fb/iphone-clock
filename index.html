@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <!-- 关键：iOS 全屏 -->
+<meta name="viewport"
+      content="width=device-width,
+               height=device-height,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no,
+               viewport-fit=cover">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Clock">
+  <title>待机时钟</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  touch-action: none; -webkit-user-select: none; user-select: none;
+}
+
+
+
+    body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#000;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+}
+
+
+    .clock-container{
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  background:#000;
+}
+
+
+    .time-display{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      gap:0;
+      transform-origin: center center;
+    }
+
+    .hours-group,.minutes-group,.seconds-group{
+      display:flex;
+      align-items:center;
+      position:relative;
+    }
+
+    :root{
+      --digit-w:140px;
+      --digit-h:200px;
+      --digit-size:200px;
+      --overlap:46px;
+
+      /* 挤出的速度（越大越慢） */
+      --slide-ms: 720ms;
+      --slide-ease: cubic-bezier(0.2, 0.9, 0.2, 1);
+      --slide-offset: 120%;
+    }
+
+    .digit-wrapper,.seconds-wrapper{
+      position:relative;
+      width:var(--digit-w);
+      height:var(--digit-h);
+      overflow:visible;
+    }
+
+    /* 同组第二位压在第一位上 */
+    .hours-group .digit-wrapper + .digit-wrapper,
+    .minutes-group .digit-wrapper + .digit-wrapper,
+    .seconds-group .seconds-wrapper + .seconds-wrapper{
+      margin-left:calc(-1 * var(--overlap));
+    }
+
+    /* 冒号：纯白，不发光 */
+    .colon{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 26px; /* 两点之间稍拉开 */
+    margin: 0 calc(-1 * (var(--overlap) / 2));
+    padding-bottom: 0;    /* 不再人为顶高 */
+    position: relative;
+    z-index: 50;
+    pointer-events: none;
+
+    /* 关键：整体下移到数字中间 */
+    transform: translateY(10px);
+    }
+    .dot{
+        filter: blur(0.2px);
+    width: 34px;          /* 原来 26px → 更大 */
+    height: 34px;
+    background: rgba(255, 255, 255, 0.8); /* 透明度更低 */
+    border-radius: 50%;
+    box-shadow: none;
+    }
+
+
+    /* ===== 倾斜只放容器，稳定不变 ===== */
+    #hours-tens   { z-index:10; --rot:-6deg; --skew:-3deg; }
+    #hours-ones   { z-index:20; --rot: 4deg; --skew: 2deg; }
+    #minutes-tens { z-index:10; --rot:-5deg; --skew:-2deg; }
+    #minutes-ones { z-index:20; --rot: 5deg; --skew: 3deg; }
+    #seconds-tens { z-index:10; --rot:-4deg; --skew:-2deg; }
+    #seconds-ones { z-index:20; --rot: 6deg; --skew: 2deg; }
+
+    #hours-tens,#hours-ones,#minutes-tens,#minutes-ones,#seconds-tens,#seconds-ones{
+      transform:rotate(var(--rot)) skewX(var(--skew));
+      transform-origin:50% 60%;
+    }
+
+    /* ====== 新逻辑：每个槽位固定两层，不增删 DOM，不会闪回 ====== */
+    .digit-layer{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      width:100%;
+      height:100%;
+      will-change: transform, opacity;
+      transform: translateY(0);
+      opacity:1;
+      transition: transform var(--slide-ms) var(--slide-ease),
+                  opacity   var(--slide-ms) var(--slide-ease);
+      backface-visibility:hidden;
+      transform-style:preserve-3d;
+    }
+
+    .digit-text{
+      width:100%;
+      text-align:center;
+      line-height:1;
+      font-size:var(--digit-size);
+      font-weight:1000; /* 不支持则回退 */
+      letter-spacing:-10px;
+      font-feature-settings:"tnum";
+      font-variant-numeric:tabular-nums;
+
+      font-family:
+        "SF Pro Rounded",
+        "Avenir Next Rounded",
+        "Arial Rounded MT Bold",
+        "Nunito",
+        "Quicksand",
+        -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+
+      -webkit-font-smoothing:antialiased;
+      text-rendering:geometricPrecision;
+
+      /* 更圆更厚：同色描边 */
+      -webkit-text-stroke:15px currentColor;
+      text-shadow:0 0 0.6px currentColor;
+      filter: blur(0.10px);
+      opacity:0.98;
+    }
+
+    /* 深/浅色 */
+    .deep .digit-text{ color:#0b62c5; }
+    .light .digit-text{
+  color:#62b7ff;
+  opacity:0.90;            /* 稍降一点，避免整体发光过头 */
+  mix-blend-mode: screen;  /* 关键：重叠区会更亮 */
+
+  /* 关键：非常弱的“苹果式”亮边/叠亮 */
+  text-shadow:
+    0 0 0.6px currentColor,                 /* 维持厚度/圆润 */
+    0 0 10px rgba(98,183,255,0.24),         /* 轻微 halo */
+    0 0 22px rgba(98,183,255,0.10);         /* 更大更淡的扩散 */
+
+  /* 让 halo 更柔，不刺眼 */
+  filter: blur(0.10px);
+}
+
+    /* 初始：第二层放上方隐藏 */
+    .off-up{
+      transform: translateY(calc(-1 * var(--slide-offset)));
+      opacity:0;
+    }
+    /* 退场：往下挤出 */
+    .off-down{
+      transform: translateY(var(--slide-offset));
+      opacity:0;
+    }
+
+    @media (max-width: 768px){
+  .dot{
+    width: 24px;
+    height: 24px;
+    background: rgba(255,255,255,0.5);
+  }
+  .colon{
+    gap: 18px;
+    transform: translateY(14px);
+  }
+}
+
+@media (max-width: 480px){
+  .dot{
+    width: 18px;
+    height: 18px;
+    background: rgba(255,255,255,0.45);
+  }
+  .colon{
+    gap: 14px;
+    transform: translateY(10px);
+  }
+}
+.date-line{
+  margin-top: 22px;
+  text-align: center;
+
+  font-size: 20px;
+  letter-spacing: 0.06em;
+
+  /* 接近白色，但比数字弱 */
+  color: rgba(255,255,255,0.72);
+
+  /* 类圆角字体栈，和数字同一风格体系 */
+  font-family:
+    "SF Pro Rounded",
+    "Avenir Next Rounded",
+    "Arial Rounded MT",
+    "Nunito",
+    "Quicksand",
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    sans-serif;
+
+  font-weight: 600; /* 比正文略厚，但明显轻于时间 */
+  line-height: 1.2;
+
+  /* 轻微柔化，和大数字一致但更弱 */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  filter: blur(0.05px);
+
+  user-select: none;
+}
+
+
+/* 小屏适配 */
+@media (max-width: 768px){
+  .date-line{
+    margin-top: 18px;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+  }
+}
+
+@media (max-width: 480px){
+  .date-line{
+    margin-top: 14px;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+  }
+}
+
+@media (max-width: 480px){
+  .time-display{
+    transform: scale(0.82);
+  }
+}
+
+@media (max-width: 390px){
+  .time-display{
+    transform: scale(0.8);
+  }
+}
+
+
+
+  </style>
+</head>
+
+<body>
+  <div class="clock-container">
+    <div class="time-display">
+      <div class="hours-group">
+        <div class="digit-wrapper deep"  id="hours-tens"></div>
+        <div class="digit-wrapper light" id="hours-ones"></div>
+      </div>
+
+      <div class="colon"><div class="dot"></div><div class="dot"></div></div>
+
+      <div class="minutes-group">
+        <div class="digit-wrapper deep"  id="minutes-tens"></div>
+        <div class="digit-wrapper light" id="minutes-ones"></div>
+      </div>
+
+      <div class="colon"><div class="dot"></div><div class="dot"></div></div>
+
+      <div class="seconds-group">
+        <div class="seconds-wrapper deep"  id="seconds-tens"></div>
+        <div class="seconds-wrapper light" id="seconds-ones"></div>
+      </div>
+    </div>
+    <div class="date-line" id="dateLine"></div>
+  </div>
+
+  <script>
+    class DigitSlot {
+      constructor(hostEl) {
+        this.host = hostEl;
+
+        // 两层固定存在：front(当前) + back(下一个)
+        this.front = document.createElement('div');
+        this.back  = document.createElement('div');
+
+        this.front.className = 'digit-layer';
+        this.back.className  = 'digit-layer off-up';
+
+        this.frontText = document.createElement('div');
+        this.backText  = document.createElement('div');
+
+        this.frontText.className = 'digit-text';
+        this.backText.className  = 'digit-text';
+
+        this.front.appendChild(this.frontText);
+        this.back.appendChild(this.backText);
+
+        this.host.appendChild(this.front);
+        this.host.appendChild(this.back);
+
+        this.value = null;
+        this.animating = false;
+
+        // 动画结束后复位 back 到上方隐藏，交换角色
+        this.front.addEventListener('transitionend', (e) => {
+          if (!this.animating) return;
+          if (e.propertyName !== 'transform') return;
+
+          // 交换：back 成为新的 front
+          const oldFront = this.front;
+          const oldFrontText = this.frontText;
+
+          this.front = this.back;
+          this.frontText = this.backText;
+
+          this.back = oldFront;
+          this.backText = oldFrontText;
+
+          // 复位 back（旧 front）到上方隐藏，准备下一次
+          this.back.classList.remove('off-down');
+          this.back.classList.add('off-up');
+          this.backText.textContent = '';
+
+          this.animating = false;
+        });
+      }
+
+      setInstant(v) {
+        this.value = v;
+        this.frontText.textContent = v;
+        this.backText.textContent = '';
+        this.front.classList.remove('off-down', 'off-up');
+        this.back.classList.add('off-up');
+      }
+
+      setValue(v) {
+        if (v === this.value) return;
+
+        // 如果上一次还在跑，直接硬切到最终态，避免累积导致闪回
+        if (this.animating) {
+          this.setInstant(this.value);
+          this.animating = false;
+        }
+
+        this.value = v;
+
+        // back 放上方（off-up），写入新值
+        this.backText.textContent = v;
+        this.back.classList.add('off-up');
+        this.back.classList.remove('off-down');
+
+        // 强制 reflow：确保浏览器把“起始位置”吃进去
+        // eslint-disable-next-line no-unused-expressions
+        this.back.offsetHeight;
+
+        this.animating = true;
+
+        // 开始动画：front 往下挤出，back 进入到位
+        this.front.classList.add('off-down');
+        this.back.classList.remove('off-up');
+      }
+    }
+
+    const slots = {
+      h0: new DigitSlot(document.getElementById('hours-tens')),
+      h1: new DigitSlot(document.getElementById('hours-ones')),
+      m0: new DigitSlot(document.getElementById('minutes-tens')),
+      m1: new DigitSlot(document.getElementById('minutes-ones')),
+      s0: new DigitSlot(document.getElementById('seconds-tens')),
+      s1: new DigitSlot(document.getElementById('seconds-ones')),
+    };
+
+    function updateClock(first = false) {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+
+      const vals = { h0: h[0], h1: h[1], m0: m[0], m1: m[1], s0: s[0], s1: s[1] };
+
+      if (first) {
+        Object.keys(vals).forEach(k => slots[k].setInstant(vals[k]));
+      } else {
+        Object.keys(vals).forEach(k => slots[k].setValue(vals[k]));
+      }
+    }
+
+    updateClock(true);
+
+    updateDate();
+    setInterval(updateDate, 60 * 1000);
+
+    // 对齐整秒，减少抖动感
+    function tick() {
+      updateClock(false);
+      const now = Date.now();
+      const delay = 1000 - (now % 1000) + 2;
+      setTimeout(tick, delay);
+    }
+    tick();
+    function updateDate() {
+  const now = new Date();
+
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const month   = now.toLocaleDateString('en-US', { month: 'long' });
+  const day     = now.getDate();
+  const year    = now.getFullYear();
+
+  // 示例：Tuesday · September 24, 2024
+  document.getElementById('dateLine').textContent =
+    `${weekday} · ${month} ${day}, ${year}`;
+}
+
+  </script>
+</body>
+</html>
