@@ -314,6 +314,33 @@
     filter: none !important;
   }
 }
+@media (max-width: 480px){
+  /* 手机端：彻底压掉“泛光”，但保留圆润与厚度 */
+  .digit-text{
+    filter: none !important;
+    -webkit-text-stroke: 1.0px currentColor !important;
+    text-shadow: 0 0 0.4px currentColor !important;
+  }
+
+  /* 浅色层：不要 halo（10/22px），否则必发光 */
+  .light .digit-text{
+    mix-blend-mode: normal !important;
+    text-shadow: 0 0 0.4px currentColor !important;
+    opacity: 0.92 !important;
+  }
+
+  /* 你想手机日期更大，就改这里（别改 .date-line 的 40px 了） */
+  .date-line{
+    font-size: 18px !important;  /* iPhone 8 建议 16~20 */
+  }
+
+  /* 冒号别雾化，否则也像发光 */
+  .dot{
+    filter: none !important;
+    background: rgba(255,255,255,0.55) !important;
+  }
+}
+
 
 
 
@@ -487,6 +514,7 @@
   </script>
 </body>
 </html>
+
 
 
 
