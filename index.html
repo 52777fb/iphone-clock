@@ -245,7 +245,6 @@
   /* 轻微柔化，和大数字一致但更弱 */
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
-  filter: blur(0.05px);
 
   user-select: none;
 }
@@ -348,24 +347,33 @@
           if (!this.animating) return;
           if (e.propertyName !== 'transform') return;
 
-          // 交换：back 成为新的 front
-          const oldFront = this.front;
-          const oldFrontText = this.frontText;
-
-          this.front = this.back;
-          this.frontText = this.backText;
-
-          this.back = oldFront;
-          this.backText = oldFrontText;
-
-          // 复位 back（旧 front）到上方隐藏，准备下一次
-          this.back.classList.remove('off-down');
-          this.back.classList.add('off-up');
-          this.backText.textContent = '';
-
-          this.animating = false;
+          this.front.addEventListener('transitionend', (e) => {
+  if (e.propertyName !== 'transform') return;
+  this.finish();
         });
       }
+
+      finish(){
+  if (!this.animating) return;
+
+  // 交换：back -> front
+  const oldFront = this.front;
+  const oldFrontText = this.frontText;
+
+  this.front = this.back;
+  this.frontText = this.backText;
+
+  this.back = oldFront;
+  this.backText = oldFrontText;
+
+  // 复位 back（旧 front）
+  this.back.classList.remove('off-down');
+  this.back.classList.add('off-up');
+  this.backText.textContent = '';
+
+  this.animating = false;
+}
+
 
       setInstant(v) {
         this.value = v;
@@ -400,6 +408,10 @@
         // 开始动画：front 往下挤出，back 进入到位
         this.front.classList.add('off-down');
         this.back.classList.remove('off-up');
+        // 兜底：防止 transitionend 丢失导致卡住（桌面/手机都可能）
+const ms = parseFloat(getComputedStyle(this.front).transitionDuration) * 1000 || 720;
+setTimeout(() => this.finish(), ms + 80);
+
       }
     }
 
@@ -416,9 +428,9 @@
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
+      const  = String(now.getSeconds()).padStart(2, '0');
 
-      const vals = { h0: h[0], h1: h[1], m0: m[0], m1: m[1], s0: s[0], s1: s[1] };
+      const vals = { h0: h[0], h1: h[1], m0: m[0], m1: m[1], s0: [0], s1: [1] };
 
       if (first) {
         Object.keys(vals).forEach(k => slots[k].setInstant(vals[k]));
@@ -432,14 +444,29 @@
     updateDate();
     setInterval(updateDate, 60 * 1000);
 
-    // 对齐整秒，减少抖动感
-    function tick() {
-      updateClock(false);
-      const now = Date.now();
-      const delay = 1000 - (now % 1000) + 2;
-      setTimeout(tick, delay);
-    }
-    tick();
+    let tickTimer = null;
+
+function scheduleTick(){
+  updateClock(false);
+  const now = Date.now();
+  const delay = 1000 - (now % 1000) + 2;
+  tickTimer = setTimeout(scheduleTick, delay);
+}
+
+function restartTick(){
+  if (tickTimer) clearTimeout(tickTimer);
+  updateClock(true);     // 回来先硬对齐一帧，避免跳秒时的怪异过渡
+  scheduleTick();
+}
+
+restartTick();
+
+// 从后台/锁屏回来时重启（iPhone 特别关键）
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) restartTick();
+});
+window.addEventListener('pageshow', restartTick);
+
     function updateDate() {
   const now = new Date();
 
@@ -456,6 +483,7 @@
   </script>
 </body>
 </html>
+
 
 
 
