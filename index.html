@@ -236,13 +236,6 @@
 
     /* 平板/小屏 */
     @media (max-width: 768px){
-      :root{
-        --digit-w:100px;
-        --digit-h:145px;
-        --digit-size:145px;
-        --overlap:40px;
-        --slide-ms: 820ms;
-      }
       .colon{ gap: 18px; transform: translateY(14px); }
       .dot{ width: 24px; height: 24px; background: rgba(255,255,255,0.8); }
       .date-line{ margin-top: 18px; font-size: 16px; letter-spacing: 0.05em; }
@@ -250,13 +243,6 @@
 
     /* 更小屏（宽度断点用于布局比例；质感用触屏规则） */
     @media (max-width: 480px){
-      :root{
-        --digit-size:200px;
-        --digit-w:140px;
-        --digit-h:200px;
-        --overlap:56px;
-        --slide-ms: 880ms;
-      }
       .colon{ gap: 14px; transform: translateY(10px); }
       .dot{ width: 18px; height: 18px; background: rgba(255,255,255,0.8); }
       .date-line{ margin-top: 14px; font-size: 18px; letter-spacing: 0.04em; }
@@ -464,5 +450,6 @@
   </script>
 </body>
 </html>
+
 
 
