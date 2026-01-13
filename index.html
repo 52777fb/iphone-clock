@@ -2,66 +2,64 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <!-- 关键：iOS 全屏 -->
-<meta name="viewport"
-      content="width=device-width,
-               height=device-height,
-               initial-scale=1.0,
-               maximum-scale=1.0,
-               user-scalable=no,
-               viewport-fit=cover">
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Clock">
-  <title>待机时钟</title>
+  <!-- iOS 全屏 / 主屏幕 WebApp -->
+  <meta name="viewport"
+        content="width=device-width,height=device-height,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Clock">
+  <link rel="icon" href="data:,">
+
+  <title>Clock</title>
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    * { -webkit-tap-highlight-color: transparent; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
-  width: 100%;
-  height: 100%;
-  background: #000;
-  overflow: hidden;
-  touch-action: none; -webkit-user-select: none; user-select: none;
-}
-
-
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
 
     body{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#000;
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
-}
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+    }
 
-
+    /* 全屏画布（不做卡片） */
     .clock-container{
-  position: relative;
-  width: 100%;
-  height: 100%;
-
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-
-  background:#000;
-}
-
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      background:#000;
+      padding:
+        max(env(safe-area-inset-top), 10px)
+        max(env(safe-area-inset-right), 10px)
+        max(env(safe-area-inset-bottom), 12px)
+        max(env(safe-area-inset-left), 10px);
+    }
 
     .time-display{
       display:flex;
       align-items:center;
       justify-content:center;
-      position:relative;
       gap:0;
+      position:relative;
       transform-origin: center center;
     }
 
-    .hours-group,.minutes-group,.seconds-group{
+    .hours-group, .minutes-group, .seconds-group{
       display:flex;
       align-items:center;
       position:relative;
@@ -71,15 +69,15 @@
       --digit-w:140px;
       --digit-h:200px;
       --digit-size:200px;
-      --overlap:46px;
+      --overlap:56px;
 
-      /* 挤出的速度（越大越慢） */
-      --slide-ms: 720ms;
+      /* 挤出速度：越大越慢 */
+      --slide-ms: 760ms;
       --slide-ease: cubic-bezier(0.2, 0.9, 0.2, 1);
       --slide-offset: 120%;
     }
 
-    .digit-wrapper,.seconds-wrapper{
+    .digit-wrapper, .seconds-wrapper{
       position:relative;
       width:var(--digit-w);
       height:var(--digit-h);
@@ -90,36 +88,32 @@
     .hours-group .digit-wrapper + .digit-wrapper,
     .minutes-group .digit-wrapper + .digit-wrapper,
     .seconds-group .seconds-wrapper + .seconds-wrapper{
-      margin-left:calc(-1 * var(--overlap));
+      margin-left: calc(-1 * var(--overlap));
     }
 
-    /* 冒号：纯白，不发光 */
+    /* 冒号：更大、更淡、位置偏中间略下 */
     .colon{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap: 26px; /* 两点之间稍拉开 */
-    margin: 0 calc(-1 * (var(--overlap) / 2));
-    padding-bottom: 0;    /* 不再人为顶高 */
-    position: relative;
-    z-index: 50;
-    pointer-events: none;
-
-    /* 关键：整体下移到数字中间 */
-    transform: translateY(10px);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 26px;
+      margin: 0 calc(-1 * (var(--overlap) / 2));
+      position: relative;
+      z-index: 50;
+      pointer-events: none;
+      transform: translateY(14px);
     }
     .dot{
-        filter: blur(0.2px);
-    width: 34px;          /* 原来 26px → 更大 */
-    height: 34px;
-    background: rgba(255, 255, 255, 0.8); /* 透明度更低 */
-    border-radius: 50%;
-    box-shadow: none;
+      width: 34px;
+      height: 34px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      box-shadow: none;
+      filter: none;
     }
 
-
-    /* ===== 倾斜只放容器，稳定不变 ===== */
+    /* 倾斜只放容器，稳定不变 */
     #hours-tens   { z-index:10; --rot:-6deg; --skew:-3deg; }
     #hours-ones   { z-index:20; --rot: 4deg; --skew: 2deg; }
     #minutes-tens { z-index:10; --rot:-5deg; --skew:-2deg; }
@@ -127,12 +121,14 @@
     #seconds-tens { z-index:10; --rot:-4deg; --skew:-2deg; }
     #seconds-ones { z-index:20; --rot: 6deg; --skew: 2deg; }
 
-    #hours-tens,#hours-ones,#minutes-tens,#minutes-ones,#seconds-tens,#seconds-ones{
-      transform:rotate(var(--rot)) skewX(var(--skew));
-      transform-origin:50% 60%;
+    #hours-tens, #hours-ones,
+    #minutes-tens, #minutes-ones,
+    #seconds-tens, #seconds-ones{
+      transform: rotate(var(--rot)) skewX(var(--skew));
+      transform-origin: 50% 60%;
     }
 
-    /* ====== 新逻辑：每个槽位固定两层，不增删 DOM，不会闪回 ====== */
+    /* 两层固定：不增删 DOM，避免闪回 */
     .digit-layer{
       position:absolute;
       inset:0;
@@ -144,8 +140,9 @@
       will-change: transform, opacity;
       transform: translateY(0);
       opacity:1;
-      transition: transform var(--slide-ms) var(--slide-ease),
-                  opacity   var(--slide-ms) var(--slide-ease);
+      transition:
+        transform var(--slide-ms) var(--slide-ease),
+        opacity   var(--slide-ms) var(--slide-ease);
       backface-visibility:hidden;
       transform-style:preserve-3d;
     }
@@ -155,10 +152,11 @@
       text-align:center;
       line-height:1;
       font-size:var(--digit-size);
-      font-weight:1000; /* 不支持则回退 */
+
+      font-weight: 1000;
       letter-spacing:-10px;
       font-feature-settings:"tnum";
-      font-variant-numeric:tabular-nums;
+      font-variant-numeric: tabular-nums;
 
       font-family:
         "SF Pro Rounded",
@@ -168,34 +166,32 @@
         "Quicksand",
         -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
 
-      -webkit-font-smoothing:antialiased;
-      text-rendering:geometricPrecision;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
 
-      /* 更圆更厚：同色描边 */
-      -webkit-text-stroke:1.5px currentColor;
-      text-shadow:0 0 0.6px currentColor;
+      /* 粗细别靠超大 stroke：控制在合理范围，避免手机糊亮 */
+      -webkit-text-stroke: 1.2px currentColor;
+
+      /* 轻微补厚 + 极轻柔化（桌面 ok；手机端会被下面触屏规则关闭） */
+      text-shadow: 0 0 0.6px currentColor;
       filter: blur(0.10px);
-      opacity:0.98;
+      opacity: 0.98;
     }
 
-    /* 深/浅色 */
     .deep .digit-text{ color:#0b62c5; }
     .light .digit-text{
-  color:#62b7ff;
-  opacity:0.90;            /* 稍降一点，避免整体发光过头 */
-  mix-blend-mode: screen;  /* 关键：重叠区会更亮 */
+      color:#62b7ff;
+      opacity:0.90;
+      mix-blend-mode: screen;
 
-  /* 关键：非常弱的“苹果式”亮边/叠亮 */
-  text-shadow:
-    0 0 0.6px currentColor,                 /* 维持厚度/圆润 */
-    0 0 10px rgba(98,183,255,0.24),         /* 轻微 halo */
-    0 0 22px rgba(98,183,255,0.10);         /* 更大更淡的扩散 */
+      /* 桌面：叠亮（手机端会被触屏规则压掉） */
+      text-shadow:
+        0 0 0.6px currentColor,
+        0 0 10px rgba(98,183,255,0.18),
+        0 0 22px rgba(98,183,255,0.10);
+    }
 
-  /* 让 halo 更柔，不刺眼 */
-  filter: blur(0.10px);
-}
-
-    /* 初始：第二层放上方隐藏 */
+    /* 初始：第二层在上方隐藏 */
     .off-up{
       transform: translateY(calc(-1 * var(--slide-offset)));
       opacity:0;
@@ -206,87 +202,97 @@
       opacity:0;
     }
 
+    /* 日期（统一圆润风格，偏白，不动画） */
+    .date-line{
+      margin-top: 22px;
+      text-align: center;
+      font-size: 20px;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.72);
+
+      font-family:
+        "SF Pro Rounded",
+        "Avenir Next Rounded",
+        "Arial Rounded MT",
+        "Nunito",
+        "Quicksand",
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Text",
+        sans-serif;
+
+      font-weight: 600;
+      line-height: 1.2;
+
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+
+      /* 不要 blur：手机上会糊 */
+      filter: none;
+
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* 平板/小屏 */
     @media (max-width: 768px){
-  .dot{
-    width: 24px;
-    height: 24px;
-    background: rgba(255,255,255,0.5);
-  }
-  .colon{
-    gap: 18px;
-    transform: translateY(14px);
-  }
-}
-.date-line{
-  margin-top: 22px;
-  text-align: center;
+      :root{
+        --digit-w:100px;
+        --digit-h:145px;
+        --digit-size:145px;
+        --overlap:40px;
+        --slide-ms: 820ms;
+      }
+      .colon{ gap: 18px; transform: translateY(14px); }
+      .dot{ width: 24px; height: 24px; background: rgba(255,255,255,0.8); }
+      .date-line{ margin-top: 18px; font-size: 16px; letter-spacing: 0.05em; }
+    }
 
-  font-size: 30px;
-  letter-spacing: 0.06em;
+    /* 更小屏（宽度断点用于布局比例；质感用触屏规则） */
+    @media (max-width: 480px){
+      :root{
+        --digit-w:72px;
+        --digit-h:105px;
+        --digit-size:105px;
+        --overlap:28px;
+        --slide-ms: 880ms;
+      }
+      .colon{ gap: 14px; transform: translateY(10px); }
+      .dot{ width: 18px; height: 18px; background: rgba(255,255,255,0.8); }
+      .date-line{ margin-top: 14px; font-size: 18px; letter-spacing: 0.04em; }
+    }
 
-  /* 接近白色，但比数字弱 */
-  color: rgba(255,255,255,0.72);
+    /* ✅ 触屏设备“质感”规则：横竖屏都生效（解决手机强光晕 + 日期糊） */
+    @media (hover: none) and (pointer: coarse){
+      .digit-text{
+        filter: none !important;
+        -webkit-text-stroke: 1.0px currentColor !important;
+        text-shadow: 0 0 0.4px currentColor !important;
+      }
+      .light .digit-text{
+        mix-blend-mode: normal !important;      /* 手机不发光 */
+        text-shadow: 0 0 0.4px currentColor !important;
+        opacity: 0.92 !important;
+      }
+      .date-line{
+        filter: none !important;
+        text-rendering: auto !important;
+        -webkit-font-smoothing: antialiased !important;
+      }
+      .dot{ filter: none !important; }
+    }
 
-  /* 类圆角字体栈，和数字同一风格体系 */
-  font-family:
-    "SF Pro Rounded",
-    "Avenir Next Rounded",
-    "Arial Rounded MT",
-    "Nunito",
-    "Quicksand",
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Text",
-    sans-serif;
-
-  font-weight: 600; /* 比正文略厚，但明显轻于时间 */
-  line-height: 1.2;
-
-  /* 轻微柔化，和大数字一致但更弱 */
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
-
-  user-select: none;
-}
-
-
-/* 小屏适配 */
-/* 触屏手机/平板（iPhone 横竖都算），稳定命中 */
-@media (hover: none) and (pointer: coarse){
-  /* 手机端：彻底压掉“泛光”，但保留厚度 */
-  .digit-text{
-    filter: none !important;
-    -webkit-text-stroke: 1.0px currentColor !important;
-    text-shadow: 0 0 0.4px currentColor !important;
-  }
-
-  /* 浅色层：去掉 halo + 不用 screen（否则像发光） */
-  .light .digit-text{
-    mix-blend-mode: normal !important;
-    text-shadow: 0 0 0.4px currentColor !important;
-    filter: none !important;
-    opacity: 0.92 !important;
-  }
-
-  /* 日期字号：触屏设备统一走这个，不再受横竖屏宽度影响 */
-  .date-line{
-    font-size: 25px !important;   /* 你要更大就改这里 */
-  }
-
-  /* 冒号别雾化 */
-  .dot{
-    filter: none !important;
-    background: rgba(255,255,255,0.8) !important;
-  }
-}
-
-
-
-
-
-
-
-
+    /* 调试版本号（确认手机确实更新了；不需要就删） */
+    body::after{
+      content: "v-OK-001";
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      color: rgba(255,255,255,0.55);
+      font: 12px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+      z-index: 9999;
+      pointer-events: none;
+    }
   </style>
 </head>
 
@@ -312,6 +318,7 @@
         <div class="seconds-wrapper light" id="seconds-ones"></div>
       </div>
     </div>
+
     <div class="date-line" id="dateLine"></div>
   </div>
 
@@ -320,7 +327,6 @@
       constructor(hostEl) {
         this.host = hostEl;
 
-        // 两层固定存在：front(当前) + back(下一个)
         this.front = document.createElement('div');
         this.back  = document.createElement('div');
 
@@ -329,7 +335,6 @@
 
         this.frontText = document.createElement('div');
         this.backText  = document.createElement('div');
-
         this.frontText.className = 'digit-text';
         this.backText.className  = 'digit-text';
 
@@ -342,38 +347,31 @@
         this.value = null;
         this.animating = false;
 
-        // 动画结束后复位 back 到上方隐藏，交换角色
+        // transitionend 偶尔会丢：这里正常收尾，另外还有 watchdog 兜底
         this.front.addEventListener('transitionend', (e) => {
-          if (!this.animating) return;
           if (e.propertyName !== 'transform') return;
-
-          this.front.addEventListener('transitionend', (e) => {
-  if (e.propertyName !== 'transform') return;
-  this.finish();
+          this.finish();
         });
       }
 
       finish(){
-  if (!this.animating) return;
+        if (!this.animating) return;
 
-  // 交换：back -> front
-  const oldFront = this.front;
-  const oldFrontText = this.frontText;
+        const oldFront = this.front;
+        const oldFrontText = this.frontText;
 
-  this.front = this.back;
-  this.frontText = this.backText;
+        this.front = this.back;
+        this.frontText = this.backText;
 
-  this.back = oldFront;
-  this.backText = oldFrontText;
+        this.back = oldFront;
+        this.backText = oldFrontText;
 
-  // 复位 back（旧 front）
-  this.back.classList.remove('off-down');
-  this.back.classList.add('off-up');
-  this.backText.textContent = '';
+        this.back.classList.remove('off-down');
+        this.back.classList.add('off-up');
+        this.backText.textContent = '';
 
-  this.animating = false;
-}
-
+        this.animating = false;
+      }
 
       setInstant(v) {
         this.value = v;
@@ -381,37 +379,34 @@
         this.backText.textContent = '';
         this.front.classList.remove('off-down', 'off-up');
         this.back.classList.add('off-up');
+        this.animating = false;
       }
 
       setValue(v) {
         if (v === this.value) return;
 
-        // 如果上一次还在跑，直接硬切到最终态，避免累积导致闪回
-        if (this.animating) {
-          this.setInstant(this.value);
-          this.animating = false;
-        }
+        // 如果上一轮没收尾，强制收尾（避免“跑久了动画没了”）
+        if (this.animating) this.finish();
 
         this.value = v;
 
-        // back 放上方（off-up），写入新值
+        // back 放上方，写入新值
         this.backText.textContent = v;
         this.back.classList.add('off-up');
         this.back.classList.remove('off-down');
 
-        // 强制 reflow：确保浏览器把“起始位置”吃进去
-        // eslint-disable-next-line no-unused-expressions
-        this.back.offsetHeight;
+        // 强制 reflow：保证起始态生效
+        void this.back.offsetHeight;
 
         this.animating = true;
 
-        // 开始动画：front 往下挤出，back 进入到位
+        // 开始动画：front 往下挤出，back 进入
         this.front.classList.add('off-down');
         this.back.classList.remove('off-up');
-        // 兜底：防止 transitionend 丢失导致卡住（桌面/手机都可能）
-const ms = parseFloat(getComputedStyle(this.front).transitionDuration) * 1000 || 720;
-setTimeout(() => this.finish(), ms + 80);
 
+        // watchdog：transitionend 丢失时也能收尾
+        const dur = parseFloat(getComputedStyle(this.front).transitionDuration) * 1000 || 760;
+        setTimeout(() => this.finish(), dur + 120);
       }
     }
 
@@ -439,57 +434,45 @@ setTimeout(() => this.finish(), ms + 80);
       }
     }
 
-    updateClock(true);
+    function updateDate() {
+      const now = new Date();
+      const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+      const month   = now.toLocaleDateString('en-US', { month: 'long' });
+      const day     = now.getDate();
+      const year    = now.getFullYear();
+      document.getElementById('dateLine').textContent = `${weekday} · ${month} ${day}, ${year}`;
+    }
 
-    updateDate();
-    setInterval(updateDate, 60 * 1000);
-
+    // 对齐整秒 + 可重启（解决后台/长时间节流后“动画消失/错拍”）
     let tickTimer = null;
 
-function scheduleTick(){
-  updateClock(false);
-  const now = Date.now();
-  const delay = 1000 - (now % 1000) + 2;
-  tickTimer = setTimeout(scheduleTick, delay);
-}
+    function scheduleTick(){
+      updateClock(false);
+      const now = Date.now();
+      const delay = 1000 - (now % 1000) + 2;
+      tickTimer = setTimeout(scheduleTick, delay);
+    }
 
-function restartTick(){
-  if (tickTimer) clearTimeout(tickTimer);
-  updateClock(true);     // 回来先硬对齐一帧，避免跳秒时的怪异过渡
-  scheduleTick();
-}
+    function restartTick(){
+      if (tickTimer) clearTimeout(tickTimer);
+      updateClock(true);
+      scheduleTick();
+    }
 
-restartTick();
+    // 初始化
+    updateClock(true);
+    updateDate();
 
-// 从后台/锁屏回来时重启（iPhone 特别关键）
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) restartTick();
-});
-window.addEventListener('pageshow', restartTick);
+    // 每分钟更新一次日期（够用）
+    setInterval(updateDate, 60 * 1000);
 
-    function updateDate() {
-  const now = new Date();
+    restartTick();
 
-  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const month   = now.toLocaleDateString('en-US', { month: 'long' });
-  const day     = now.getDate();
-  const year    = now.getFullYear();
-
-  // 示例：Tuesday · September 24, 2024
-  document.getElementById('dateLine').textContent =
-    `${weekday} · ${month} ${day}, ${year}`;
-}
-
+    // 从后台/锁屏回来时重启节拍（iPhone 尤其重要）
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) restartTick();
+    });
+    window.addEventListener('pageshow', restartTick);
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
