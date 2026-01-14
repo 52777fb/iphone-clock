@@ -38,7 +38,7 @@
 
 ###  在线使用（推荐）
 
-1. 使用 **iPhone Safari** 打开网页  
+1. 使用 **iPhone Safari** 打开网页  https://52777fb.github.io/iphone-clock/
 2. 点击「分享」
 3. 选择 **添加到主屏幕**
 4. 从主屏幕打开，即可全屏运行
