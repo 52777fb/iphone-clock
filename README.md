@@ -28,6 +28,9 @@
 
 
 ### 本项目实现效果
+📱 测试平台：iPhone8
+
+⚠ 设备不同实际效果可能有出入，可自行调整
 
 <img width="500" alt="apple840644 (1)" src="https://github.com/user-attachments/assets/c1ba577b-0b55-444a-96af-5145f8dd015a" />
 
